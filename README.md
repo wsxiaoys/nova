@@ -13,13 +13,11 @@ Currently a test suite(tests/r5rs-tests.scm) from chibi-scheme is fully passed w
 
 2. Error message improvement
 
-    Most internal syntax didn't report location in error message, as the location information already
-    saved in expression's meta data, it should be trival to implement this.
+    Currently only internal core forms have proper location information for erros. Should add these for macro expanding?
 
 3. Proper local variable naming
 
     All local variable will compiles into a form of "name.location-number", this could be improved.
-
 
 4. let-syntax, letrec-syntax lacks support for moving internal definition to proper location.
 

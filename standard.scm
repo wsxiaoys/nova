@@ -9,7 +9,7 @@
           (receive-expr* (form meta) expr
             (if (not (and (= (length form) 3)
                         (name? (expr*/form (cadr form)))))
-              (classify-error "bad set! syntax" form)) 
+              (classify-error/expr "bad set! syntax" expr)) 
             (make-set meta (classify (cadr form) use-env) (classify (caddr form) use-env))))))))
 
 ;; (define var val) -> def ast
@@ -20,7 +20,7 @@
         (lambda (expr use-env mac-env)
           (receive-expr* (form meta) expr
             (if (< (length form) 3)
-              (classify-error "bad define syntax" form)) 
+              (classify-error/expr "bad define syntax" expr)) 
             (receive (name body)
                      (if (name? (expr*/form (cadr form)))
                        (values (cadr form) (caddr form)) 
@@ -48,13 +48,13 @@
         (lambda (expr use-env mac-env)
           (receive-expr* (form meta) expr
             (if (< (length form) 3) 
-              (classify-error "bad lambda syntax" form)) 
+              (classify-error/expr "bad lambda syntax" expr)) 
             (let ((env (syntactic-extend use-env)))
               (make-lam meta
                 (map* (lambda (expr)
                         (receive-expr* (x _) expr
                           (if (not (name? x)) 
-                            (classify-error "bad lambda param" form) 
+                            (classify-error/expr "bad lambda param" expr) 
                             (bind-variable! x env)) 
                           (classify expr env)))
                       (expr*/form (cadr form)))
@@ -73,7 +73,7 @@
                       ((3) (make-lit #f (void)))
                       ((4) (classify (cadddr form) use-env))
                       (else
-                        (classify-error "bad if syntax" form)))))
+                        (classify-error/expr "bad if syntax" expr)))))
               (make-cnd meta
                         (classify (cadr form) use-env)
                         (classify (caddr form) use-env)
@@ -87,7 +87,7 @@
         (lambda (expr use-env mac-env)
           (receive-expr* (form meta) expr
             (if (not (= (length form) 2))
-              (classify-error "bad quote syntax" form))
+              (classify-error/expr "bad quote syntax" expr))
             (make-lit meta (syntax->datum (expr-strip-meta (cadr form))))))))))
 
 ;; (syntax-quote form) -> lit ast
@@ -98,7 +98,7 @@
         (lambda (expr use-env mac-env)
           (receive-expr* (form meta) expr
             (if (not (= (length form) 2))
-              (classify-error "bad quote syntax" form))
+              (classify-error/expr "bad syntax-quote syntax" expr))
             (make-lit meta (expr-strip-meta (cadr form)))))))))
 
 (define (bind-syntax name value bind-env eval-env)
@@ -109,7 +109,7 @@
                 (make-macro eval-env (eval-no-hook (expr-strip-meta (ast->expr ast)))))))
     (if (and (macro? mac) (procedure? (macro/procedure mac)))
       (syntactic-bind! bind-env name mac) 
-      (classify-error "non-procedure macro" mac))))
+      (classify-error/expr "non-procedure macro" value))))
 
 (define (macrology/define-syntax)
   (make-macrology
@@ -119,19 +119,19 @@
           (receive-expr* (form meta) expr
             (if (not (and (= (length form) 3)
                           (name? (expr*/form (cadr form)))))
-              (classify-error "bad define-syntax syntax " form))
+              (classify-error/expr "bad define-syntax syntax " expr))
             (bind-syntax (expr*/form (cadr form)) (caddr form) use-env use-env)
             (make-lit meta (void))))))))
 
 (define (let-syntax-helper expr mac-env bind-env eval-env)
   (receive-expr* (form meta) expr
     (if (not (>= (length form) 3))
-      (classify-error "bad let-syntax " form))
+      (classify-error/expr "bad syntax binding" expr))
     (map
       (lambda (x)
         (receive-expr* (form meta) x
           (if (not (name? (expr*/form (car form))))
-            (classify-error "bad let-syntax name " form))
+            (classify-error "bad syntax binding" x))
           (bind-syntax (expr*/form (car form)) (cadr form) bind-env eval-env)))
       (expr*/form (cadr form)))
     (syntactic-seal! bind-env)

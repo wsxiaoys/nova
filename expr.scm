@@ -1,3 +1,4 @@
+;;; Expression methods
 (define (expr? obj) ;; returns false for expressions without 'attached notes'
   (and (vector? obj)
        (##fixnum.= (##vector-length obj) 4)
@@ -13,6 +14,10 @@
   (vector-ref expr 1))
 
 (define (expr/meta expr)
+  (define (pos/line pos)
+    (+ 1 (bitwise-and pos 65535)))
+  (define (pos/col pos)
+    (+ 1 (quotient pos 65536)))
   (let ((type (vector-ref expr 0))
         (file (or (vector-ref expr 2) "(generated)"))
         (pos (or (vector-ref expr 3) 0)))
@@ -27,16 +32,6 @@
   (if (expr? expr)
     (expr/meta expr)
     #f))
-
-(define (pos/line pos)
-  (+ 1 (bitwise-and pos 65535)))
-
-(define (pos/col pos)
-  (+ 1 (quotient pos 65536)))
-
-(define (make-pos line col)
-  (+ (##fixnum.- line 1)
-     (* (##fixnum.- col 1) 65536)))
 
 (define-macro (receive-expr* sym expr . body)
   `(receive ,sym
@@ -54,4 +49,10 @@
           (else v))))
 
 (define (make-expr form meta)
+  (define (make-pos line col)
+    (+ (##fixnum.- line 1)
+       (* (##fixnum.- col 1) 65536)))
   (vector (car meta) form (cadr meta) (make-pos (caddr meta) (cadddr meta))))
+
+(define (meta/disclose meta)
+  `(File: ,(cadr meta) Line: ,(caddr meta) Col: ,(cadddr meta)))

@@ -38,9 +38,9 @@
                     ((macro? denotation)
                      (if allow-macro
                        denotation
-                       (classify-error "Invalid usage macro as variable" denotation name environment)))
+                       (classify-error/expr "Invalid usage macro as variable" expr)))
                     (else
-                      (classify-error "Invalid denotation:" denotation name environment)))))
+                      (classify-error/expr "Invalid denotation:" expr)))))
           (else
             ;; free-vars
             (make-ref meta (name->symbol name) #f)))))
@@ -69,3 +69,7 @@
 
 (define (classify-error . msg)
   (apply error msg))
+
+(define (classify-error/expr msg expr)
+  (receive-expr* (_ meta) expr
+    (apply classify-error (append (meta/disclose meta) (list msg) (list (expr-strip-meta expr))))))
